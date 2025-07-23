@@ -20,7 +20,13 @@ void Labyrinthe::generer() {
     creerChemin(largeur / 2, hauteur / 2);
     creerEntreeSortie();
 }
+int Labyrinthe::getLargeur() const {
+    return largeur;
+}
 
+int Labyrinthe::getHauteur() const {
+    return hauteur;
+}
 
 bool Labyrinthe::estMur(int x, int y) const {
     if (!estValide(x, y)) return true;
@@ -67,13 +73,6 @@ void Labyrinthe::creerChemin(int x, int y) {
     }
 }
 
-/**
- * @brief Positionne l'entrée et la sortie
- * @details :
- * - L'entrée est toujours au centre
- * - La sortie est la case accessible la plus éloignée
- * @uses Parcours en largeur (BFS) pour calculer les distances
- */
 void Labyrinthe::creerEntreeSortie() {
     std::vector<std::vector<int>> distances(hauteur, std::vector<int>(largeur, -1));
     std::queue<Position> file;

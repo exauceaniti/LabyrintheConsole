@@ -1,32 +1,39 @@
-
 #ifndef GAMEENGINE_H
 #define GAMEENGINE_H
 
 #include "Labyrinthe.h"
 #include "Joueur.h"
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <iostream>
+#include <chrono>
+#include <thread>
 
 class GameEngine {
-public:
-
-    GameEngine(int largeurLaby, int hauteurLaby);
-
-
-    void run();
-
 private:
     Labyrinthe labyrinthe;
     Joueur joueur;
     bool gameOver;
     int score;
 
+    static struct termios oldTermios;
 
-    void processInput();
-
+    // Gestion clavier
+    static void initKeyboard();
+    static void restoreKeyboard();
+    static bool keyPressed();
+    static char getKey();
+    void handleInput();  // Ajoute cette ligne
 
     void update();
-
     void checkVictory();
     void render();
+    void showGameResult(const std::string& title);
+
+public:
+    GameEngine(int largeurLaby, int hauteurLaby);
+    void run();
 };
 
-#endif // GAMEENGINE_H
+#endif
