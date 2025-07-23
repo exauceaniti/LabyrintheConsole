@@ -16,7 +16,8 @@ private:
     Joueur joueur;
     bool gameOver;
     int score;
-
+    int niveauActuel;
+    bool victoire;
     static struct termios oldTermios;
 
     // Gestion clavier
@@ -24,7 +25,7 @@ private:
     static void restoreKeyboard();
     static bool keyPressed();
     static char getKey();
-    void handleInput();  // Ajoute cette ligne
+    void handleInput();
 
     void update();
     void checkVictory();
@@ -32,7 +33,7 @@ private:
     void showGameResult(const std::string& title);
 
 public:
-    GameEngine(int largeurLaby, int hauteurLaby);
+    GameEngine(int largeurLaby, int hauteurLaby, int niveau = 1);
     void run();
 };
 

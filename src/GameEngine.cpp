@@ -5,28 +5,40 @@
 #include <chrono>
 #include <thread>
 #include <cstdlib>
+#include <cctype> // Pour tolower()
 
 struct termios GameEngine::oldTermios;
 
-// Constructeur
-GameEngine::GameEngine(int width, int height)
-    : labyrinthe(width, height), joueur(1, 1), gameOver(false) {
+// Nouveau constructeur avec niveau
+GameEngine::GameEngine(int width, int height, int niveau)
+    : labyrinthe(width, height), joueur(1, 1), gameOver(false),
+      score(0), niveauActuel(niveau), victoire(false) {
     labyrinthe.generer();
 }
 
 void GameEngine::update() {
-    // Accès correct à la paire (std::pair) de la sortie
     auto sortie = labyrinthe.getSortie();
     if (joueur.getX() == sortie.first && joueur.getY() == sortie.second) {
+        victoire = true;
         gameOver = true;
-        std::cout << "\n*** Victoire ! ***\n";
+        score += 100 * niveauActuel; // Calcul du score
     }
 }
 
 void GameEngine::render() {
     system("clear");
 
-    // Utilisation des méthodes get() pour les dimensions
+    if (victoire) {
+        std::cout << "================================\n";
+        std::cout << " FÉLICITATIONS ! Vous avez réussi\n";
+        std::cout << " Score: " << score << " points\n";
+        std::cout << " Niveau: " << niveauActuel << "\n";
+        std::cout << "================================\n\n";
+        std::cout << " [N]iveau suivant\n";
+        std::cout << " [Q]uitter\n";
+        return;
+    }
+
     for (int y = 0; y < labyrinthe.getHauteur(); ++y) {
         for (int x = 0; x < labyrinthe.getLargeur(); ++x) {
             if (joueur.getX() == x && joueur.getY() == y) {
@@ -45,11 +57,9 @@ void GameEngine::render() {
         std::cout << std::endl;
     }
     std::cout << "Contrôles : ZQSD ou flèches | X pour quitter" << std::endl;
+    std::cout << "Niveau: " << niveauActuel << " | Score: " << score << std::endl;
 }
 
-// [Le reste de votre code existant reste inchangé]
-
-// --- Fonctions existantes (gestion du clavier) ---
 void GameEngine::initKeyboard() {
     tcgetattr(STDIN_FILENO, &oldTermios);
     struct termios newTermios = oldTermios;
@@ -83,14 +93,32 @@ void GameEngine::handleInput() {
 
     char input = getKey();
 
-    if (input == '\033') { // Flèches directionnelles (ASCII 27)
+    if (victoire) {
+        switch(tolower(input)) {
+            case 'n':
+                niveauActuel++;
+                gameOver = false;
+                victoire = false;
+                // Réinitialiser le jeu avec nouveau niveau
+                labyrinthe = Labyrinthe(labyrinthe.getLargeur() + 2, labyrinthe.getHauteur() + 2);
+                labyrinthe.generer();
+                joueur = Joueur(1, 1);
+                break;
+            case 'q': // Quitter
+                gameOver = true;
+                break;
+        }
+        return;
+    }
+
+    if (input == '\033') {
         if (!keyPressed()) return;
         getKey(); // Ignore le '['
         switch(getKey()) {
-            case 'A': joueur.deplacer(0, -1, labyrinthe); break; // Haut
-            case 'B': joueur.deplacer(0, 1, labyrinthe); break;  // Bas
-            case 'D': joueur.deplacer(-1, 0, labyrinthe); break; // Gauche
-            case 'C': joueur.deplacer(1, 0, labyrinthe); break;   // Droite
+            case 'A': joueur.deplacer(0, -1, labyrinthe); break;
+            case 'B': joueur.deplacer(0, 1, labyrinthe); break;
+            case 'D': joueur.deplacer(-1, 0, labyrinthe); break;
+            case 'C': joueur.deplacer(1, 0, labyrinthe); break;
         }
     } else {
         switch(input) {
@@ -98,7 +126,7 @@ void GameEngine::handleInput() {
             case 'q': case 'Q': joueur.deplacer(-1, 0, labyrinthe); break;
             case 's': case 'S': joueur.deplacer(0, 1, labyrinthe); break;
             case 'd': case 'D': joueur.deplacer(1, 0, labyrinthe); break;
-            case 'x': case 'X': gameOver = true; break; // Quitter
+            case 'x': case 'X': gameOver = true; break;
         }
     }
 }
@@ -111,7 +139,7 @@ void GameEngine::run() {
         update();
         render();
         handleInput();
-        std::this_thread::sleep_for(std::chrono::milliseconds(16)); // ~60 FPS
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
     restoreKeyboard();
 }
