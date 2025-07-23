@@ -1,57 +1,29 @@
-#include "../include/Utils.h"
+#include "Utils.h"
+#include <unistd.h>      // Pour STDIN_FILENO
+#include <termios.h>     // Pour termios, tcgetattr, tcsetattr
+#include <sys/ioctl.h>   // Pour ioctl
 
-#ifdef __linux__
-#include <termios.h>
-#include <unistd.h>
-#include <fcntl.h>
+static struct termios original;
 
-/**
- * @brief Vérifie si une touche a été pressée sans bloquer l'exécution
- */
-int _kbhit() {
-    struct termios oldt, newt;
-    int ch;
-    int oldf;
-
-    // Sauvegarde de l'état terminal
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);          // Mode non canonique + pas d'écho
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-
-    // Active la lecture non bloquante
-    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-
-    ch = getchar(); // Lecture
-
-    // Restaure l'état
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-    fcntl(STDIN_FILENO, F_SETFL, oldf);
-
-    if (ch != EOF) {
-        ungetc(ch, stdin); // Remet le caractère dans le flux
-        return 1;
-    }
-
-    return 0;
+void Keyboard::init() {
+    tcgetattr(STDIN_FILENO, &original);
+    struct termios raw = original;
+    raw.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &raw);
 }
 
-/**
- * @brief Lit une touche pressée immédiatement (sans enter)
- */
-int _getch() {
-    struct termios oldt, newt;
-    int ch;
+void Keyboard::restore() {
+    tcsetattr(STDIN_FILENO, TCSANOW, &original);
+}
 
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO); // Lecture immédiate
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+bool Keyboard::keyPressed() {
+    int bytes;
+    ioctl(STDIN_FILENO, FIONREAD, &bytes);
+    return bytes > 0;
+}
 
-    ch = getchar(); // Lecture bloquante
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt); // Restaure le terminal
+char Keyboard::getChar() {
+    char ch = 0;
+    read(STDIN_FILENO, &ch, 1);
     return ch;
 }
-#endif
