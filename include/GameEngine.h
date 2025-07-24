@@ -17,6 +17,7 @@ private:
     bool gameOver;
     int score;
     int niveauActuel;
+    int maxCollisions = 5;
     bool victoire;
     static struct termios oldTermios;
 
@@ -35,6 +36,7 @@ private:
 public:
     GameEngine(int largeurLaby, int hauteurLaby, int niveau = 1);
     void run();
+    void resetGame();
 };
 
 #endif

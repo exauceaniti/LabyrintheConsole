@@ -5,7 +5,8 @@
 #include <chrono>
 #include <thread>
 #include <cstdlib>
-#include <cctype> // Pour tolower()
+#include <cctype>
+#include <iomanip>
 
 struct termios GameEngine::oldTermios;
 
@@ -17,11 +18,17 @@ GameEngine::GameEngine(int width, int height, int niveau)
 }
 
 void GameEngine::update() {
-    auto sortie = labyrinthe.getSortie();
-    if (joueur.getX() == sortie.first && joueur.getY() == sortie.second) {
-        victoire = true;
+    if (joueur.isGameOver()) {  // Vérifie si le joueur a trop de collisions
         gameOver = true;
-        score += 100 * niveauActuel; // Calcul du score
+        return;
+    }
+
+    if (!victoire) {
+        auto sortie = labyrinthe.getSortie();
+        if (joueur.getX() == sortie.first && joueur.getY() == sortie.second) {
+            victoire = true;
+            score += 100 * niveauActuel;
+        }
     }
 }
 
@@ -29,35 +36,70 @@ void GameEngine::render() {
     system("clear");
 
     if (victoire) {
-        std::cout << "================================\n";
-        std::cout << " FÉLICITATIONS ! Vous avez réussi\n";
-        std::cout << " Score: " << score << " points\n";
-        std::cout << " Niveau: " << niveauActuel << "\n";
-        std::cout << "================================\n\n";
-        std::cout << " [N]iveau suivant\n";
-        std::cout << " [Q]uitter\n";
+        std::cout << "\n\n";
+        std::cout << "    ╔════════════════════════════╗\n";
+        std::cout << "        FÉLICITATIONS !           \n";
+        std::cout << "        Vous avez réussi          \n";
+        std::cout << "    ╠════════════════════════════╣\n";
+        std::cout << "        Score: " << std::setw(10) << score << "       \n";
+        std::cout << "        Niveau: " << std::setw(8) << niveauActuel << "       \n";
+        std::cout << "    ╚════════════════════════════╝\n\n";
+        std::cout << "    ► [N]iveau suivant\n";
+        std::cout << "    ► [Q]uitter\n\n";
+        std::cout << "  Sélection: _\b";
+        return;
+    }
+    else if (gameOver && joueur.isGameOver()) {
+        std::cout << "\n\n";
+        std::cout << "    ╔════════════════════════════╗\n";
+        std::cout << "             GAME OVER!           \n";
+        std::cout << "       Trop de collisions         \n";
+        std::cout << "    ╠════════════════════════════╣\n";
+        std::cout << "        Score: " << std::setw(10) << score << "      \n";
+        std::cout << "        Niveau: " << std::setw(8) << niveauActuel << "       \n";
+        std::cout << "    ╚════════════════════════════╝\n\n";
+        std::cout << "    ► [R]ecommencer\n";
+        std::cout << "    ► [Q]uitter\n\n";
+        std::cout << "  Sélection: ";
+        fflush(stdout);
         return;
     }
 
+    // Récupère les positions
+    const int joueurX = joueur.getX();
+    const int joueurY = joueur.getY();
+    const auto sortie = labyrinthe.getSortie();
+    const bool collisionRecent = (joueur.getCollisionsCount() > 0 && joueur.getCollisionsCount() % 5 != 0);
+
+    // Affichage du labyrinthe
     for (int y = 0; y < labyrinthe.getHauteur(); ++y) {
         for (int x = 0; x < labyrinthe.getLargeur(); ++x) {
-            if (joueur.getX() == x && joueur.getY() == y) {
-                std::cout << 'P';  // Joueur
-            } else if (labyrinthe.estMur(x, y)) {
-                std::cout << '#';  // Mur
-            } else {
-                auto sortie = labyrinthe.getSortie();
-                if (x == sortie.first && y == sortie.second) {
-                    std::cout << 'S';  // Sortie
-                } else {
-                    std::cout << ' ';  // Chemin vide
-                }
+            if (joueurX == x && joueurY == y) {
+                std::cout << (collisionRecent ? "\033[31mP\033[0m" : "\033[32mP\033[0m");
+            }
+            else if (x == sortie.first && y == sortie.second) {
+                std::cout << "\033[33mS\033[0m";
+            }
+            else if (labyrinthe.estMur(x, y)) {
+                std::cout << "\033[34m#\033[0m";
+            }
+            else {
+                std::cout << ' ';
             }
         }
-        std::cout << std::endl;
+        std::cout << '\n';
     }
-    std::cout << "Contrôles : ZQSD ou flèches | X pour quitter" << std::endl;
-    std::cout << "Niveau: " << niveauActuel << " | Score: " << score << std::endl;
+
+    // Affichage des informations
+    std::cout << "Contrôles: ZQSD/Flèches | X: Quitter\n"
+              << "Niveau: " << niveauActuel
+              << " | Score: " << score
+              << " | Collisions: " << joueur.getCollisionsCount() << "/5\n";
+
+    if (joueur.getCollisionsCount() >= 3) {
+        std::cout << "\033[31mAttention! Collisions: "
+                  << joueur.getCollisionsCount() << "/5\033[0m\n";
+    }
 }
 
 void GameEngine::initKeyboard() {
@@ -90,56 +132,71 @@ char GameEngine::getKey() {
 
 void GameEngine::handleInput() {
     if (!keyPressed()) return;
+    char input = tolower(getKey());
 
-    char input = getKey();
-
-    if (victoire) {
-        switch(tolower(input)) {
-            case 'n':
-                niveauActuel++;
-                gameOver = false;
-                victoire = false;
-                // Réinitialiser le jeu avec nouveau niveau
-                labyrinthe = Labyrinthe(labyrinthe.getLargeur() + 2, labyrinthe.getHauteur() + 2);
-                labyrinthe.generer();
-                joueur = Joueur(1, 1);
+    if (gameOver && joueur.isGameOver()) {
+        switch(input) {
+            case 'r':
+                resetGame();
                 break;
-            case 'q': // Quitter
-                gameOver = true;
-                break;
+            case 'q':
+                std::cout << "\nMerci d'avoir joué !\n";
+                std::this_thread::sleep_for(std::chrono::seconds(1)); // Pause avant de quitter
+                exit(0);
+            default:
+                return; // Ignore les autres touches
         }
         return;
     }
 
-    if (input == '\033') {
+    // Gestion des mouvements normaux
+    if (input == '\033') { // Flèches directionnelles
         if (!keyPressed()) return;
         getKey(); // Ignore le '['
         switch(getKey()) {
-            case 'A': joueur.deplacer(0, -1, labyrinthe); break;
-            case 'B': joueur.deplacer(0, 1, labyrinthe); break;
-            case 'D': joueur.deplacer(-1, 0, labyrinthe); break;
-            case 'C': joueur.deplacer(1, 0, labyrinthe); break;
+            case 'A': joueur.deplacer(0, -1, labyrinthe); break; // Haut
+            case 'B': joueur.deplacer(0, 1, labyrinthe); break;  // Bas
+            case 'D': joueur.deplacer(-1, 0, labyrinthe); break; // Gauche
+            case 'C': joueur.deplacer(1, 0, labyrinthe); break;  // Droite
         }
-    } else {
-        switch(input) {
-            case 'z': case 'Z': joueur.deplacer(0, -1, labyrinthe); break;
-            case 'q': case 'Q': joueur.deplacer(-1, 0, labyrinthe); break;
-            case 's': case 'S': joueur.deplacer(0, 1, labyrinthe); break;
-            case 'd': case 'D': joueur.deplacer(1, 0, labyrinthe); break;
-            case 'x': case 'X': gameOver = true; break;
+    } else { // Touches ZQSD
+        switch(tolower(input)) {
+            case 'z': joueur.deplacer(0, -1, labyrinthe); break;
+            case 'q': joueur.deplacer(-1, 0, labyrinthe); break;
+            case 's': joueur.deplacer(0, 1, labyrinthe); break;
+            case 'd': joueur.deplacer(1, 0, labyrinthe); break;
+            case 'x': gameOver = true; break;
         }
     }
+}
+
+void GameEngine::resetGame() {
+    gameOver = false;
+    victoire = false;
+    labyrinthe = Labyrinthe(labyrinthe.getLargeur(), labyrinthe.getHauteur());
+    labyrinthe.generer();
+    joueur = Joueur(1, 1);
+    score = 0;
+    niveauActuel = 1;  // Réinitialise aussi le niveau si nécessaire
+    joueur.resetCollisions();  // Si ta classe Joueur a cette méthode
 }
 
 void GameEngine::run() {
     initKeyboard();
     atexit(restoreKeyboard);
 
+    // Fréquence de rafraîchissement (60 FPS)
+    constexpr std::chrono::milliseconds frameDuration(16);
+    auto nextFrame = std::chrono::steady_clock::now();
+
     while (!gameOver) {
         update();
         render();
         handleInput();
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+
+        // Contrôle précis du framerate
+        nextFrame += frameDuration;
+        std::this_thread::sleep_until(nextFrame);
     }
     restoreKeyboard();
 }
