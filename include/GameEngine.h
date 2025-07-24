@@ -9,6 +9,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <ncurses.h>
 
 class GameEngine {
 private:
@@ -17,26 +18,21 @@ private:
     bool gameOver;
     int score;
     int niveauActuel;
-    int maxCollisions = 5;
     bool victoire;
-    static struct termios oldTermios;
 
-    // Gestion clavier
-    static void initKeyboard();
-    static void restoreKeyboard();
-    static bool keyPressed();
-    static char getKey();
     void handleInput();
-
+    void niveauSuivant();
     void update();
     void checkVictory();
     void render();
     void showGameResult(const std::string& title);
+    static const int maxCollisions = 5;
+    std::chrono::time_point<std::chrono::steady_clock> nextFrame;
+    std::chrono::nanoseconds frameDuration;
 
 public:
     GameEngine(int largeurLaby, int hauteurLaby, int niveau = 1);
     void run();
     void resetGame();
 };
-
 #endif

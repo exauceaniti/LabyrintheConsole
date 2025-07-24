@@ -9,6 +9,7 @@ private:
     int y;
     int collisionsCount;
     bool gameOver;
+    static const int maxCollisions = 5;
 
 public:
     Joueur(int xDepart, int yDepart);
@@ -16,7 +17,6 @@ public:
     void resetPosition() { x = 1; y = 1; collisionsCount = 0; gameOver = false; }
     int getX() const;
     int getY() const;
-
 
     bool isGameOver() const { return gameOver; }
     int getCollisionsCount() const { return collisionsCount; }

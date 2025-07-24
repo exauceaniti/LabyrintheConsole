@@ -9,17 +9,21 @@ void Joueur::deplacer(int dx, int dy, const Labyrinthe& laby) {
     int newX = x + dx;
     int newY = y + dy;
 
+    if (!laby.estValide(newX, newY)) {
+        return;
+    }
+
     if (laby.estMur(newX, newY)) {
         collisionsCount++;
-        if (collisionsCount >= 5) {
+        if (collisionsCount >= maxCollisions) {
             gameOver = true;
         }
-    } else {
-        x = newX;
-        y = newY;
+        return;
     }
-}
 
+    x = newX;
+    y = newY;
+}
 int Joueur::getX() const { return x; }
 int Joueur::getY() const { return y; }
 

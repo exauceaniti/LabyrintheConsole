@@ -172,6 +172,8 @@ LabyrintheConsole: CMakeFiles/LabyrintheConsole.dir/src/Joueur.cpp.o
 LabyrintheConsole: CMakeFiles/LabyrintheConsole.dir/src/Labyrinthe.cpp.o
 LabyrintheConsole: CMakeFiles/LabyrintheConsole.dir/src/Utils.cpp.o
 LabyrintheConsole: CMakeFiles/LabyrintheConsole.dir/build.make
+LabyrintheConsole: /usr/lib/x86_64-linux-gnu/libcurses.so
+LabyrintheConsole: /usr/lib/x86_64-linux-gnu/libform.so
 LabyrintheConsole: CMakeFiles/LabyrintheConsole.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/exauce-aniti/CLionProjects/LabyrintheProjet-modeCOnsole/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX executable LabyrintheConsole"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/LabyrintheConsole.dir/link.txt --verbose=$(VERBOSE)

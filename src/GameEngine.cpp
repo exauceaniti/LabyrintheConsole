@@ -7,8 +7,7 @@
 #include <cstdlib>
 #include <cctype>
 #include <iomanip>
-
-struct termios GameEngine::oldTermios;
+#include <ncurses.h>
 
 // Nouveau constructeur avec niveau
 GameEngine::GameEngine(int width, int height, int niveau)
@@ -18,7 +17,7 @@ GameEngine::GameEngine(int width, int height, int niveau)
 }
 
 void GameEngine::update() {
-    if (joueur.isGameOver()) {  // Vérifie si le joueur a trop de collisions
+    if (joueur.isGameOver()) {
         gameOver = true;
         return;
     }
@@ -33,142 +32,146 @@ void GameEngine::update() {
 }
 
 void GameEngine::render() {
-    system("clear");
+    clear();
 
     if (victoire) {
-        std::cout << "\n\n";
-        std::cout << "    ╔════════════════════════════╗\n";
-        std::cout << "        FÉLICITATIONS !           \n";
-        std::cout << "        Vous avez réussi          \n";
-        std::cout << "    ╠════════════════════════════╣\n";
-        std::cout << "        Score: " << std::setw(10) << score << "       \n";
-        std::cout << "        Niveau: " << std::setw(8) << niveauActuel << "       \n";
-        std::cout << "    ╚════════════════════════════╝\n\n";
-        std::cout << "    ► [N]iveau suivant\n";
-        std::cout << "    ► [Q]uitter\n\n";
-        std::cout << "  Sélection: _\b";
-        return;
-    }
-    else if (gameOver && joueur.isGameOver()) {
-        std::cout << "\n\n";
-        std::cout << "    ╔════════════════════════════╗\n";
-        std::cout << "             GAME OVER!           \n";
-        std::cout << "       Trop de collisions         \n";
-        std::cout << "    ╠════════════════════════════╣\n";
-        std::cout << "        Score: " << std::setw(10) << score << "      \n";
-        std::cout << "        Niveau: " << std::setw(8) << niveauActuel << "       \n";
-        std::cout << "    ╚════════════════════════════╝\n\n";
-        std::cout << "    ► [R]ecommencer\n";
-        std::cout << "    ► [Q]uitter\n\n";
-        std::cout << "  Sélection: ";
-        fflush(stdout);
+        printw("\n\n ╔════════════════════════════╗\n");
+        printw("        FÉLICITATIONS !           \n");
+        printw("        Vous avez réussi          \n");
+        printw("     ╠════════════════════════════╣\n");
+        printw("        Score: %10d       \n", score);
+        printw("        Niveau: %8d       \n", niveauActuel);
+        printw("     ╚════════════════════════════╝\n\n");
+        printw("    ► [N]iveau suivant\n");
+        printw("    ► [Q]uitter\n\n");
+        printw("  Sélection: ");
+        refresh();
         return;
     }
 
-    // Récupère les positions
-    const int joueurX = joueur.getX();
-    const int joueurY = joueur.getY();
-    const auto sortie = labyrinthe.getSortie();
-    const bool collisionRecent = (joueur.getCollisionsCount() > 0 && joueur.getCollisionsCount() % 5 != 0);
+    if (gameOver) {
+        printw("\n\n  ╔════════════════════════════╗\n");
+        printw("             GAME OVER!           \n");
+        printw("       Trop de collisions         \n");
+        printw("      ╠════════════════════════════╣\n");
+        printw("        Score: %10d      \n", score);
+        printw("        Niveau: %8d       \n", niveauActuel);
+        printw("      ╚════════════════════════════╝\n\n");
+        printw("    ► [R]ecommencer\n");
+        printw("    ► [Q]uitter\n\n");
+        printw("  Sélection: ");
+        refresh();
+        return;
+    }
 
     // Affichage du labyrinthe
     for (int y = 0; y < labyrinthe.getHauteur(); ++y) {
         for (int x = 0; x < labyrinthe.getLargeur(); ++x) {
-            if (joueurX == x && joueurY == y) {
-                std::cout << (collisionRecent ? "\033[31mP\033[0m" : "\033[32mP\033[0m");
+            if (joueur.getX() == x && joueur.getY() == y) {
+                if (joueur.getCollisionsCount() > 0) {
+                    attron(COLOR_PAIR(2));
+                    printw("P");
+                    attroff(COLOR_PAIR(2));
+                } else {
+                    attron(COLOR_PAIR(1));
+                    printw("P");
+                    attroff(COLOR_PAIR(1));
+                }
             }
-            else if (x == sortie.first && y == sortie.second) {
-                std::cout << "\033[33mS\033[0m";
+            else if (x == labyrinthe.getSortie().first && y == labyrinthe.getSortie().second) {
+                attron(COLOR_PAIR(3));
+                printw("S");
+                attroff(COLOR_PAIR(3));
             }
             else if (labyrinthe.estMur(x, y)) {
-                std::cout << "\033[34m#\033[0m";
+                attron(COLOR_PAIR(4));
+                printw("#");
+                attroff(COLOR_PAIR(4));
             }
             else {
-                std::cout << ' ';
+                printw(" ");
             }
         }
-        std::cout << '\n';
+        printw("\n");
     }
 
-    // Affichage des informations
-    std::cout << "Contrôles: ZQSD/Flèches | X: Quitter\n"
-              << "Niveau: " << niveauActuel
-              << " | Score: " << score
-              << " | Collisions: " << joueur.getCollisionsCount() << "/5\n";
+    // Informations du jeu
+    printw("\nContrôles: Z (haut), Q (gauche), S (bas), D (droite), X (quitter)\n");
+	printw("Niveau: %d | Score: %d | Collisions: %d/%d\n",
+       niveauActuel, score, joueur.getCollisionsCount(), maxCollisions);
 
     if (joueur.getCollisionsCount() >= 3) {
-        std::cout << "\033[31mAttention! Collisions: "
-                  << joueur.getCollisionsCount() << "/5\033[0m\n";
+        attron(COLOR_PAIR(2));
+        printw("Attention! %d/%d collisions\n", joueur.getCollisionsCount(), maxCollisions);
+        attroff(COLOR_PAIR(2));
     }
+
+    refresh();
 }
 
-void GameEngine::initKeyboard() {
-    tcgetattr(STDIN_FILENO, &oldTermios);
-    struct termios newTermios = oldTermios;
-    newTermios.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL);
-    newTermios.c_cc[VMIN] = 0;
-    newTermios.c_cc[VTIME] = 0;
-    tcsetattr(STDIN_FILENO, TCSANOW, &newTermios);
-    fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+
+void GameEngine::niveauSuivant() {
+    niveauActuel++;
+    score += 100 * niveauActuel;
+    labyrinthe = Labyrinthe(labyrinthe.getLargeur(), labyrinthe.getHauteur());
+    labyrinthe.generer();
+    joueur = Joueur(1, 1);
+    victoire = false;
+    gameOver = false;
 }
 
-void GameEngine::restoreKeyboard() {
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldTermios);
-}
-
-bool GameEngine::keyPressed() {
-    struct timeval tv = {0L, 0L};
-    fd_set fds;
-    FD_ZERO(&fds);
-    FD_SET(STDIN_FILENO, &fds);
-    return select(1, &fds, NULL, NULL, &tv) > 0;
-}
-
-char GameEngine::getKey() {
-    char ch;
-    read(STDIN_FILENO, &ch, 1);
-    return ch;
-}
 
 void GameEngine::handleInput() {
-    if (!keyPressed()) return;
-    char input = tolower(getKey());
+    int ch = getch(); // Utilise directement getch() de ncurses
 
-    if (gameOver && joueur.isGameOver()) {
-        switch(input) {
-            case 'r':
-                resetGame();
-                break;
-            case 'q':
-                std::cout << "\nMerci d'avoir joué !\n";
-                std::this_thread::sleep_for(std::chrono::seconds(1)); // Pause avant de quitter
-                exit(0);
-            default:
-                return; // Ignore les autres touches
+    if (gameOver || victoire) {
+        if (ch != ERR) {
+            if (victoire) {
+                switch(ch) {
+                    case 'n': case 'N':
+                        niveauSuivant();
+                        break;
+                    case 'q': case 'Q':
+                        gameOver = true;
+                        break;
+                }
+            } else {
+                switch(ch) {
+                    case 'r': case 'R':
+                        resetGame();
+                        break;
+                    case 'q': case 'Q':
+                        gameOver = true;
+                        break;
+                }
+            }
         }
         return;
     }
 
-    // Gestion des mouvements normaux
-    if (input == '\033') { // Flèches directionnelles
-        if (!keyPressed()) return;
-        getKey(); // Ignore le '['
-        switch(getKey()) {
-            case 'A': joueur.deplacer(0, -1, labyrinthe); break; // Haut
-            case 'B': joueur.deplacer(0, 1, labyrinthe); break;  // Bas
-            case 'D': joueur.deplacer(-1, 0, labyrinthe); break; // Gauche
-            case 'C': joueur.deplacer(1, 0, labyrinthe); break;  // Droite
-        }
-    } else { // Touches ZQSD
-        switch(tolower(input)) {
-            case 'z': joueur.deplacer(0, -1, labyrinthe); break;
-            case 'q': joueur.deplacer(-1, 0, labyrinthe); break;
-            case 's': joueur.deplacer(0, 1, labyrinthe); break;
-            case 'd': joueur.deplacer(1, 0, labyrinthe); break;
-            case 'x': gameOver = true; break;
+    if (ch != ERR) {  // ERR = aucune touche pressée
+        switch(ch) {
+            case 'z': case 'Z': case KEY_UP:
+                joueur.deplacer(0, -1, labyrinthe);
+                break;
+            case 'q': case 'Q': case KEY_LEFT:
+                joueur.deplacer(-1, 0, labyrinthe);
+                break;
+            case 's': case 'S': case KEY_DOWN:
+                joueur.deplacer(0, 1, labyrinthe);
+                break;
+            case 'd': case 'D': case KEY_RIGHT:
+                joueur.deplacer(1, 0, labyrinthe);
+                break;
+            case 'x': case 'X':
+                gameOver = true;
+                break;
         }
     }
 }
+
+
+
 
 void GameEngine::resetGame() {
     gameOver = false;
@@ -177,26 +180,45 @@ void GameEngine::resetGame() {
     labyrinthe.generer();
     joueur = Joueur(1, 1);
     score = 0;
-    niveauActuel = 1;  // Réinitialise aussi le niveau si nécessaire
-    joueur.resetCollisions();  // Si ta classe Joueur a cette méthode
+    niveauActuel = 1;
+    joueur.resetCollisions();
 }
 
+
 void GameEngine::run() {
-    initKeyboard();
-    atexit(restoreKeyboard);
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+    nodelay(stdscr, TRUE);
+    start_color();
 
-    // Fréquence de rafraîchissement (60 FPS)
-    constexpr std::chrono::milliseconds frameDuration(16);
-    auto nextFrame = std::chrono::steady_clock::now();
+    // Configure les paires de couleurs
+    init_pair(1, COLOR_GREEN, COLOR_BLACK);
+    init_pair(2, COLOR_RED, COLOR_BLACK);
+    init_pair(3, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(4, COLOR_BLUE, COLOR_BLACK);
 
+    // Message d'accueil
+    clear();
+    printw("===== LABYRINTHE CONSOLE =====\n");
+    printw("Commandes : Z (haut), Q (gauche), S (bas), D (droite), X (quitter)\n");
+    printw("Appuyez sur une touche pour commencer...");
+    refresh();
+    getch(); // Attend une touche
+
+    // Boucle principale
     while (!gameOver) {
+        handleInput();
         update();
         render();
-        handleInput();
-
-        // Contrôle précis du framerate
-        nextFrame += frameDuration;
-        std::this_thread::sleep_until(nextFrame);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 10 FPS
     }
-    restoreKeyboard();
+
+    // Message de fin
+    clear();
+    printw("Merci d'avoir joué ! Appuyez sur une touche pour quitter...");
+    refresh();
+    getch();
+    endwin(); // Restaure le terminal
 }

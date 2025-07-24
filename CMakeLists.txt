@@ -16,5 +16,5 @@ add_executable(LabyrintheConsole ${SOURCES})
 target_include_directories(LabyrintheConsole PRIVATE include)
 
 # Optionnel : pour les threads
-find_package(Threads REQUIRED)
-target_link_libraries(LabyrintheConsole PRIVATE Threads::Threads)
+find_package(Curses REQUIRED)
+target_link_libraries(LabyrintheConsole PRIVATE ${CURSES_LIBRARIES})

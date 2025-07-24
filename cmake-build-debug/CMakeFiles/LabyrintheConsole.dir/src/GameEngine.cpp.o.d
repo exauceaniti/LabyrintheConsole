@@ -191,8 +191,9 @@ CMakeFiles/LabyrintheConsole.dir/src/GameEngine.cpp.o: \
  /usr/include/c++/13/bits/parse_numbers.h /usr/include/c++/13/thread \
  /usr/include/c++/13/bits/std_thread.h \
  /usr/include/c++/13/bits/unique_ptr.h \
- /usr/include/c++/13/bits/this_thread_sleep.h /usr/include/c++/13/iomanip \
- /usr/include/c++/13/locale \
+ /usr/include/c++/13/bits/this_thread_sleep.h /usr/include/curses.h \
+ /usr/include/ncurses_dll.h /usr/include/unctrl.h /usr/include/curses.h \
+ /usr/include/c++/13/iomanip /usr/include/c++/13/locale \
  /usr/include/c++/13/bits/locale_facets_nonio.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/time_members.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/messages_members.h \
